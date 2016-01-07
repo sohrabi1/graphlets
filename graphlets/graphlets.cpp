@@ -8,7 +8,7 @@
 
 using namespace std;
 
-const vector<vector<int>>& enumerateSubgraphs(vector<int>, vector<int> , int);
+const vector<vector<int>>& enumerateSubgraphs(vector<int> &, vector<int> & , int);
 void extendSubgraph(vector<int>, vector<int>, int, vector<int>&, vector<int>&, const int, vector<vector<int>> &);
 
 int main()
@@ -51,6 +51,9 @@ int main()
 		}
 	}
 
+	vector<vector<int>> graphlets;
+	graphlets = enumerateSubgraphs(graphVector, delimiterInfo, 3);
+
 	return 0;
 }
 
@@ -59,52 +62,66 @@ const vector<vector<int>>& enumerateSubgraphs(vector<int>& graph, vector<int>& d
 {
 	const int nEdges = graph.size() / 2;			//number of edges in the graph
 	const int nVertices = delimiter.size() - 1;		//number of vertices in the graph
-	vector<int> extensionV(1);						//stores neigbors for each vertex
-	vector<vector<int>> answer(1);
+	
+	vector<vector<int>> answer(1);					//stores the graphlet info
 	for (int i = 0; i < nVertices; i++)
 	{
-		for (int j = 0; j < delimiter[i + 1] - delimiter[i]; j++)
+		vector<int> extensionV(1);						//stores neigbors for each vertex
+		extensionV[0] = -1;
+		for (int j = delimiter[i]; j < delimiter[i + 1]; j++)
 		{
-			if (graph[i + j] > i)
-				extensionV.push_back(graph[i + j]);
+			if (graph[j] > i)
+				extensionV.push_back(graph[j]);
 		}
 		vector<int> subgraphV(1);
 		subgraphV[0] = i;
 		extendSubgraph(subgraphV, extensionV, i, graph, delimiter, k, answer);
 	}
 
-	return answer;
+	return answer;                                                                 
 }
 
 void extendSubgraph(vector<int> subgraphVertices, vector<int> extensionVertices, int v, vector<int>& graph, vector<int>& delimiter, const int k, vector<vector<int>>& answer)
 {
 	if (subgraphVertices.size() == k)
-		answer.push_back( subgraphVertices);
-	int w = 0;
-	vector<int> neighborhood(1);
-	neighborhood[1] = -1;
-
-	while (extensionVertices.size() != 0)		//if not empty
 	{
-		for (int i = 0; i < extensionVertices.size(); i++)		//remove an arbitrary chosen vertex every time from extensionVertices called w
+		answer.push_back(subgraphVertices);
+		return;
+	}
+	int w = 0;
+
+	while (extensionVertices.size() != 1)		//if not empty
+	{
+		for (int i = 1; i < extensionVertices.size(); i++)		//remove an arbitrary chosen vertex every time from extensionVertices called w
 		{
 			w = extensionVertices[i];
-			extensionVertices.erase(extensionVertices.begin() + i);
+			vector<int> extVer;
+			extVer = extensionVertices;
 
-			for (int j = 0; j < extensionVertices.size(); j++)	//find the neighborhood of the remaining vertices
-				for (int k = delimiter[extensionVertices[j]]; k < delimiter[extensionVertices[j] + 1]; k++)
+			vector<int> subVer;
+			subVer = subgraphVertices;
+			extVer.erase(extVer.begin() + i);
+
+			vector<int> neighborhood(1);
+			neighborhood[0] = -1;
+
+			for (int j = 1; j < extVer.size(); j++)	//find the neighborhood of the remaining vertices
+				for (int k = delimiter[extVer[j]]; k < delimiter[extVer[j] + 1]; k++)
 				{
 					neighborhood.push_back(graph[k]);
 				}
-
+			
 																//add neighboring vertices of w if they are bigger than v and in exclusive neighborhood of other vertices in extensionVertices
 			for (int j = delimiter[w]; j < delimiter[w + 1]; j++)
 			{
-				if ((graph[w] > v) && (find(neighborhood.begin(), neighborhood.end(), graph[w]) == neighborhood.end()))
-					extensionVertices.push_back(graph[w]);
+				if ((graph[j] > v) && (find(neighborhood.begin(), neighborhood.end(), graph[j]) == neighborhood.end()))
+					extVer.push_back(graph[j]);
 			}
-			subgraphVertices.push_back(w);
-			extendSubgraph(subgraphVertices, extensionVertices, v, graph, delimiter, k, answer);
+			
+			subVer.push_back(w);
+			
+			extendSubgraph(subVer, extVer, v, graph, delimiter, k, answer);
 		}
 	}
+	return;
 }
