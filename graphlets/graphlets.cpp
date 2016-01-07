@@ -66,8 +66,7 @@ const vector<vector<int>>& enumerateSubgraphs(vector<int>& graph, vector<int>& d
 	vector<vector<int>> answer(1);					//stores the graphlet info
 	for (int i = 0; i < nVertices; i++)
 	{
-		vector<int> extensionV(1);						//stores neigbors for each vertex
-		extensionV[0] = -1;
+		vector<int> extensionV;						//stores neigbors for each vertex
 		for (int j = delimiter[i]; j < delimiter[i + 1]; j++)
 		{
 			if (graph[j] > i)
@@ -90,9 +89,9 @@ void extendSubgraph(vector<int> subgraphVertices, vector<int> extensionVertices,
 	}
 	int w = 0;
 
-	while (extensionVertices.size() != 1)		//if not empty
+	while (extensionVertices.size() != 0)		//if not empty
 	{
-		for (int i = 1; i < extensionVertices.size(); i++)		//remove an arbitrary chosen vertex every time from extensionVertices called w
+		for (int i = 0; i < extensionVertices.size(); i++)		//remove an arbitrary chosen vertex every time from extensionVertices called w
 		{
 			w = extensionVertices[i];
 			vector<int> extVer;
@@ -102,10 +101,9 @@ void extendSubgraph(vector<int> subgraphVertices, vector<int> extensionVertices,
 			subVer = subgraphVertices;
 			extVer.erase(extVer.begin() + i);
 
-			vector<int> neighborhood(1);
-			neighborhood[0] = -1;
+			vector<int> neighborhood;
 
-			for (int j = 1; j < extVer.size(); j++)	//find the neighborhood of the remaining vertices
+			for (int j = 0; j < extVer.size(); j++)	//find the neighborhood of the remaining vertices
 				for (int k = delimiter[extVer[j]]; k < delimiter[extVer[j] + 1]; k++)
 				{
 					neighborhood.push_back(graph[k]);
@@ -114,7 +112,7 @@ void extendSubgraph(vector<int> subgraphVertices, vector<int> extensionVertices,
 																//add neighboring vertices of w if they are bigger than v and in exclusive neighborhood of other vertices in extensionVertices
 			for (int j = delimiter[w]; j < delimiter[w + 1]; j++)
 			{
-				if ((graph[j] > v) && (find(neighborhood.begin(), neighborhood.end(), graph[j]) == neighborhood.end()))
+				if ((graph[j] > v) && (find(neighborhood.begin(), neighborhood.end(), graph[j]) == neighborhood.end()) && (find(extVer.begin(), extVer.end(), graph[j]) == extVer.end()))
 					extVer.push_back(graph[j]);
 			}
 			
