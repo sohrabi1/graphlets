@@ -13,7 +13,7 @@ void extendSubgraph(vector<int>, vector<int>, int, vector<int>&, vector<int>&, c
 
 int main()
 {
-	vector<vector<int>> preVector(5, vector<int>(1));
+	vector<vector<int>> preVector(4, vector<int>(1));
 
 	//read network from file
 	ifstream readNetwork("network.txt", ios::in);
@@ -24,10 +24,10 @@ int main()
 	{
 		readNetwork >> v2;
 		NumberEdges++;
-		//if (preVector.size() < max(v1, v2))
-		//{
-		//	preVector.resize(max(v1, v2), 0);
-		//}
+		if (preVector.size() <= max(v1, v2))
+		{
+			preVector.resize(max(v1, v2)+1);
+		}
 		preVector[v1].push_back(v2);	//add corresponding info for an edge to the to vertices
 		preVector[v2].push_back(v1);
 	}
@@ -63,7 +63,7 @@ const vector<vector<int>>& enumerateSubgraphs(vector<int>& graph, vector<int>& d
 	const int nEdges = graph.size() / 2;			//number of edges in the graph
 	const int nVertices = delimiter.size() - 1;		//number of vertices in the graph
 	
-	vector<vector<int>> answer(1);					//stores the graphlet info
+	vector<vector<int>> answer;					//stores the graphlet info
 	for (int i = 0; i < nVertices; i++)
 	{
 		vector<int> extensionV;						//stores neigbors for each vertex
@@ -99,8 +99,14 @@ void extendSubgraph(vector<int> subgraphVertices, vector<int> extensionVertices,
 
 			vector<int> subVer;
 			subVer = subgraphVertices;
-			extVer.erase(extVer.begin() + i);
 
+			extVer.erase(extVer.begin() + i);					//remove w from extVer
+
+			for (int j = 0; j < extVer.size(); j++)				//remove elements in extVer if they are smaller than w (avoid graphlet repitition)
+			{
+				if (extVer[j]<w)
+					extVer.erase(extVer.begin() + j);
+			}
 			vector<int> neighborhood;
 
 			for (int j = 0; j < extVer.size(); j++)	//find the neighborhood of the remaining vertices
@@ -109,10 +115,11 @@ void extendSubgraph(vector<int> subgraphVertices, vector<int> extensionVertices,
 					neighborhood.push_back(graph[k]);
 				}
 			
+
 																//add neighboring vertices of w if they are bigger than v and in exclusive neighborhood of other vertices in extensionVertices
 			for (int j = delimiter[w]; j < delimiter[w + 1]; j++)
 			{
-				if ((graph[j] > v) && (find(neighborhood.begin(), neighborhood.end(), graph[j]) == neighborhood.end()) && (find(extVer.begin(), extVer.end(), graph[j]) == extVer.end()))
+				if ((graph[j] > w) && (find(neighborhood.begin(), neighborhood.end(), graph[j]) == neighborhood.end()) && (find(extVer.begin(), extVer.end(), graph[j]) == extVer.end()))
 					extVer.push_back(graph[j]);
 			}
 			
@@ -120,6 +127,7 @@ void extendSubgraph(vector<int> subgraphVertices, vector<int> extensionVertices,
 			
 			extendSubgraph(subVer, extVer, v, graph, delimiter, k, answer);
 		}
+		return;
 	}
 	return;
 }
