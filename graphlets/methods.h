@@ -5,6 +5,9 @@
 
 #include <vector>
 #include <algorithm>
+#include <stdlib.h>
+#include <stdio.h>
+#include "nautyinit.h"
 
 using namespace std;
 
@@ -15,4 +18,6 @@ vector<int> findNeighborhood(vector<int>&, vector<int>&, vector<int>&);
 bool ifContains(vector<int>&, int);
 vector<int> vertexNeigbors(vector<int>&, vector<int>&, int ); 
 vector<int> adjacencyFromGraphlets(vector<int>&, vector<int>&, vector<vector<int>> &);
+vector<vector<unsigned int>> adjacencyNSFromGraphlets(vector<int>&, vector<int>&, vector<vector<int>> &);
 int ifConnected(int ,int ,vector<int>& ,vector<int>& );
+unsigned int *  ComputeLabel(unsigned int n, unsigned int *adjacencyMatrix);

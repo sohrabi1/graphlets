@@ -48,7 +48,8 @@ int main()
 
 	vector<vector<int>> graphlets;
 	graphlets = enumerateSubgraphs(graphVector, delimiterInfo, 3);
-	vector<int> adjacency = adjacencyFromGraphlets(graphVector, delimiterInfo, graphlets);
+	vector<vector<unsigned int>> adjacency = adjacencyNSFromGraphlets(graphVector, delimiterInfo, graphlets);
+	unsigned int * canonical = ComputeLabel(3, &(adjacency[0])[0]);
 
 	return 0;
 }
@@ -154,7 +155,7 @@ bool ifContains(vector<int>& input, int element)
 	return find(input.begin(), input.end(), element) != input.end();
 }
 
-
+//outputs sparse adjacency matrix
 vector<int> adjacencyFromGraphlets(vector<int>& graph, vector<int>& delimiter, vector<vector<int>> & graphlets)
 {
 	vector<int> graphletsAdjacency;
@@ -176,6 +177,30 @@ vector<int> adjacencyFromGraphlets(vector<int>& graph, vector<int>& delimiter, v
 	return graphletsAdjacency;
 }
 
+//outputs nonsparse adjacency matrix
+vector<vector<unsigned int>> adjacencyNSFromGraphlets(vector<int>& graph, vector<int>& delimiter, vector<vector<int>> & graphlets)
+{
+	unsigned int a = 1 << (sizeof(unsigned int)*8 -1);
+	vector<vector<unsigned int>> graphletsAdjacency(graphlets.size());
+	for (int i = 0; i < graphlets.size(); i++)
+	{
+		for (int j = 0; j < graphlets[0].size(); j++)
+		{
+			int bit = 0;
+			int ifEdge;
+			for (int k = 0; k < graphlets[0].size(); k++)
+			{
+				bit = bit >> 1;
+				ifEdge = ifConnected(graphlets[i][j], graphlets[i][k], graph, delimiter);
+				bit = bit | (ifEdge == 1 ? a : 0);
+			}
+			graphletsAdjacency[i].push_back(bit);
+		}
+		
+	}
+	return graphletsAdjacency;
+}
+
 //check if two vertices are connected in a graph
 int ifConnected(int vertex1, int vertex2, vector<int>& graph, vector<int>& delimiter)
 {
@@ -183,4 +208,24 @@ int ifConnected(int vertex1, int vertex2, vector<int>& graph, vector<int>& delim
 		return 1;
 	return 0;
 
+}
+
+
+unsigned int *  ComputeLabel(unsigned int n, unsigned int *adjacencyMatrix)
+{
+	int m = 1;
+	graph *canon = (graph *)malloc(n * sizeof(int) * 2);
+
+	int lab[MAXN], ptn[MAXN], orbits[MAXN];
+	DEFAULTOPTIONS(options);
+	statsblk(stats);
+	setword workspace[160 * MAXM];
+	set *gv;
+
+	options.writeautoms = FALSE;
+	options.getcanon = TRUE;
+
+	nauty(adjacencyMatrix, lab, ptn, NULL, orbits, &options, &stats, workspace, 160 * MAXM, m, n, canon);
+
+	return canon;
 }
