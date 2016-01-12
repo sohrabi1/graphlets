@@ -5,6 +5,7 @@
 
 extern "C" {
 	#include "nauty/nauty.h"
+	#include "nauty/naugraph.c"
 	// #include "nauty/nautinv.h"
 	//#include "nauty/gtools.h"
 }

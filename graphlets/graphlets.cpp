@@ -6,12 +6,14 @@
 #include <algorithm>
 #include "methods.h"
 
+
 using namespace std;
 
 
 
 int main()
 {
+	
 	vector<vector<int>> preVector;
 
 	//read network from file
@@ -47,9 +49,11 @@ int main()
 	}
 
 	vector<vector<int>> graphlets;
-	graphlets = enumerateSubgraphs(graphVector, delimiterInfo, 3);
-	vector<vector<unsigned int>> adjacency = adjacencyNSFromGraphlets(graphVector, delimiterInfo, graphlets);
-	unsigned int * canonical = ComputeLabel(3, &(adjacency[0])[0]);
+	int k = 3;
+	graphlets = enumerateSubgraphs(graphVector, delimiterInfo, k);
+	vector<vector<unsigned int>> graphletAdjacencies = adjacencyNSFromGraphlets(graphVector, delimiterInfo, graphlets);
+	vector<unsigned int *> canons = getCanons(k,graphletAdjacencies);
+	unsigned int * canonical = ComputeLabel(k, &(graphletAdjacencies[0])[0]);
 
 	return 0;
 }
@@ -210,7 +214,7 @@ int ifConnected(int vertex1, int vertex2, vector<int>& graph, vector<int>& delim
 
 }
 
-
+//outputs canonical labling of an adjacency matrix of a graphlet
 unsigned int *  ComputeLabel(unsigned int n, unsigned int *adjacencyMatrix)
 {
 	int m = 1;
@@ -228,4 +232,12 @@ unsigned int *  ComputeLabel(unsigned int n, unsigned int *adjacencyMatrix)
 	nauty(adjacencyMatrix, lab, ptn, NULL, orbits, &options, &stats, workspace, 160 * MAXM, m, n, canon);
 
 	return canon;
+}
+
+//outputs canonical labling vector of an all canons of all graphlets
+vector<unsigned int *> getCanons(unsigned int n, vector<vector<unsigned int>> graphletAdj){
+	vector<unsigned int *> graphletCanon;
+	for (int i = 0; i < graphletAdj.size(); i++)
+		graphletCanon.push_back(ComputeLabel(n, &(graphletAdj[0])[0]));
+	return graphletCanon;
 }

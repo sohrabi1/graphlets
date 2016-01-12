@@ -18,15 +18,12 @@
     <Text Include="ReadMe.txt" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="graphlets.cpp">
+    <ClCompile Include="Build_Dictionary.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="methods.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="nautyinit.h">
+    <ClInclude Include="Build_Dictionary.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

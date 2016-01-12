@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "nautyinit.h"
+#include "Build_Dictionary.h"
 
 using namespace std;
 
@@ -21,3 +22,4 @@ vector<int> adjacencyFromGraphlets(vector<int>&, vector<int>&, vector<vector<int
 vector<vector<unsigned int>> adjacencyNSFromGraphlets(vector<int>&, vector<int>&, vector<vector<int>> &);
 int ifConnected(int ,int ,vector<int>& ,vector<int>& );
 unsigned int *  ComputeLabel(unsigned int n, unsigned int *adjacencyMatrix);
+vector<unsigned int *> getCanons(unsigned int, vector<vector<unsigned int>>);
