@@ -55,7 +55,7 @@
       <SDLCheck>true</SDLCheck>
       <PrecompiledHeaderFile />
       <PrecompiledHeaderOutputFile />
-      <AdditionalIncludeDirectories>C:\Users\Salma\Documents\Visual Studio 2013\Projects\graphlets\Build_Dictionary;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Users\Salma\Documents\Visual Studio 2013\Projects\graphlets\Build_Dictionary;C:\Users\Salma\Documents\Visual Studio 2013\Projects\graphlets\graphlets;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
