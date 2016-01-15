@@ -4,6 +4,7 @@
 #include <iostream>
 #include <fstream>
 #include <algorithm>
+#include <string>
 #include "methods.h"
 
 
@@ -13,71 +14,27 @@ using namespace std;
 
 int main()
 {
-	vector<vector<int>> dictionary(1024, vector<int>(5, -1));
-	ifstream inputFileDict("dictionary.bin", ios::in | ios::binary);
-	for (int i = 0; i < 1024; i++)
-		for (int j = 0; j < 5; j++)
-			inputFileDict.read((char*)&dictionary[i][j], sizeof(1));
-	inputFileDict.close();
 
-	vector<vector<int>> preVector;
+	vector<vector<int>> dictionary = read_dictionary_from_file("dictionary.bin");
+	network net = read_network_from_file("network.txt");
 
-	//read network from file
-	ifstream readNetwork("network.txt", ios::in);
-	int v1, v2, NumberEdges;	//v1 and v2 store the vertices for each edge entry
-	NumberEdges = 0;			//NumberEdges counts the number of edges as input file streams
-
-	while (readNetwork >> v1)
-	{
-		readNetwork >> v2;
-		NumberEdges++;
-		if (preVector.size() <= max(v1, v2))
-		{
-			preVector.resize(max(v1, v2)+1);
-		}
-		preVector[v1].push_back(v2);	//add corresponding info for an edge to the to vertices
-		preVector[v2].push_back(v1);
-	}
-	readNetwork.close();
-	//
-
-	vector<int> graphVector(NumberEdges * 2);		//graphVector is the finall vector used to represent the network
-	vector<int> delimiterInfo(preVector.size()+1);	//the array used to store the information on where in graphVector each array starts
-	delimiterInfo[0] = 0;
-	int current = 0;								//to indicate where in the graphVector we are
-	for (int i = 0; i < preVector.size(); i++)
-	{
-		delimiterInfo[i + 1] = delimiterInfo[i] + preVector[i].size();
-		for (int j = 0; j < preVector[i].size(); j++)
-		{
-			graphVector[current] = preVector[i][j];
-			current++;
-		}
-	}
-
-	vector<vector<int>> graphlets;
-	int k = 3;
-	graphlets = enumerateSubgraphs(graphVector, delimiterInfo, k);
-	vector<vector<unsigned int>> graphletAdjacencies = adjacencyNSFromGraphlets(graphVector, delimiterInfo, graphlets);
-	vector<unsigned int *> canons = getCanons(k,graphletAdjacencies);
-	unsigned int * canonical = ComputeLabel(k, &(graphletAdjacencies[0])[0]);
+	vector<vector<int>> gdd = compute_GDD(dictionary, net, 4);
 
 	return 0;
 }
 
 
 
-const vector<vector<int>> enumerateSubgraphs(vector<int>& graph, vector<int>& delimiter, const int k)
+const vector<vector<int>> enumerateSubgraphs(network& n, const int k)
 {
-
-	const int nVertices = delimiter.size() - 1;		//number of vertices in the graph
+	const int nVertices = n.delimiterInfo.size() - 1;		//number of vertices in the graph
 	vector<vector<int>> answer;					//stores graphlets info
 
 	for (int i = 0; i < nVertices; i++)
 	{
-		vector<int> extensionV = vertexNeigbors(graph, delimiter, i);	//stores neigbors for each vertex
+		vector<int> extensionV = vertexNeigbors(n.graphVector, n.delimiterInfo, i);	//stores neigbors for each vertex
 		vector<int> subgraphV(1, i);
-		extendSubgraph(subgraphV, extensionV, i, graph, delimiter, k, answer);
+		extendSubgraph(subgraphV, extensionV, i, n.graphVector, n.delimiterInfo, k, answer);
 	}
 
 	return answer;
@@ -189,7 +146,7 @@ vector<int> adjacencyFromGraphlets(vector<int>& graph, vector<int>& delimiter, v
 }
 
 //outputs nonsparse adjacency matrix
-vector<vector<unsigned int>> adjacencyNSFromGraphlets(vector<int>& graph, vector<int>& delimiter, vector<vector<int>> & graphlets)
+vector<vector<unsigned int>> adjacencyNSFromGraphlets(network& n, vector<vector<int>> & graphlets)
 {
 	unsigned int a = 1 << (sizeof(unsigned int)*8 -1);
 	vector<vector<unsigned int>> graphletsAdjacency(graphlets.size());
@@ -197,12 +154,12 @@ vector<vector<unsigned int>> adjacencyNSFromGraphlets(vector<int>& graph, vector
 	{
 		for (int j = 0; j < graphlets[0].size(); j++)
 		{
-			int bit = 0;
+			unsigned int bit = 0;
 			int ifEdge;
-			for (int k = 0; k < graphlets[0].size(); k++)
+			for (int k = graphlets[0].size()-1; k >=0 ; k--)
 			{
 				bit = bit >> 1;
-				ifEdge = ifConnected(graphlets[i][j], graphlets[i][k], graph, delimiter);
+				ifEdge = ifConnected(graphlets[i][j], graphlets[i][k], n.graphVector, n.delimiterInfo);
 				bit = bit | (ifEdge == 1 ? a : 0);
 			}
 			graphletsAdjacency[i].push_back(bit);
@@ -221,13 +178,11 @@ int ifConnected(int vertex1, int vertex2, vector<int>& graph, vector<int>& delim
 
 }
 
-//outputs canonical labling of an adjacency matrix of a graphlet
-unsigned int *  ComputeLabel(unsigned int n, unsigned int *adjacencyMatrix)
-{
-	int m = 1;
-	graph *canon = (graph *)malloc(n * sizeof(int) * 2);
 
-	int lab[MAXN], ptn[MAXN], orbits[MAXN];
+nauty_output  ComputeCanon(unsigned int n, unsigned int *NCAdjacency)
+{
+	nauty_output output;
+	int m = 1;
 	DEFAULTOPTIONS(options);
 	statsblk(stats);
 	setword workspace[160 * MAXM];
@@ -236,15 +191,117 @@ unsigned int *  ComputeLabel(unsigned int n, unsigned int *adjacencyMatrix)
 	options.writeautoms = FALSE;
 	options.getcanon = TRUE;
 
-	nauty(adjacencyMatrix, lab, ptn, NULL, orbits, &options, &stats, workspace, 160 * MAXM, m, n, canon);
+	nauty(NCAdjacency, output.label, output.ptn, NULL, output.orbits, &options, &stats, workspace, 160 * MAXM, m, n, output.canonical);
 
-	return canon;
+	return output;
 }
 
 //outputs canonical labling vector of an all canons of all graphlets
-vector<unsigned int *> getCanons(unsigned int n, vector<vector<unsigned int>> graphletAdj){
-	vector<unsigned int *> graphletCanon;
+vector<nauty_output> getCanons(unsigned int n, vector<vector<unsigned int>> graphletAdj){
+	vector<nauty_output> graphletCanon;
 	for (int i = 0; i < graphletAdj.size(); i++)
-		graphletCanon.push_back(ComputeLabel(n, &(graphletAdj[0])[0]));
+		graphletCanon.push_back(ComputeCanon(n, &(graphletAdj[i])[0]));
 	return graphletCanon;
+}
+
+//gets the file name and reads the *txt file and outputs the readout as a network structure
+network read_network_from_file(string file_name){
+
+	network net;
+
+	//read network from file
+	ifstream readNetwork(file_name, ios::in);
+
+	int v1, v2;	//v1 and v2 store the vertices for each edge entry
+	net.Number_of_Edges = 0;			//NumberEdges counts the number of edges as input file streams
+	vector<vector<int>> preVector;
+	while (readNetwork >> v1)
+	{
+		readNetwork >> v2;
+		net.Number_of_Edges++;
+		if (preVector.size() <= max(v1, v2))
+		{
+			preVector.resize(max(v1, v2) + 1);
+		}
+		preVector[v1].push_back(v2);	//add corresponding info for an edge to the to vertices
+		preVector[v2].push_back(v1);
+	}
+	readNetwork.close();
+	//
+
+	net.graphVector.resize(net.Number_of_Edges * 2);		//graphVector is the finall vector used to represent the network
+	net.delimiterInfo.resize(preVector.size() + 1);			//the array used to store the information on where in graphVector each array starts
+	net.delimiterInfo[0] = 0;
+	int current = 0;								//to indicate where in the graphVector we are
+	for (int i = 0; i < preVector.size(); i++)
+	{
+		net.delimiterInfo[i + 1] = net.delimiterInfo[i] + preVector[i].size();
+		for (int j = 0; j < preVector[i].size(); j++)
+		{
+			net.graphVector[current] = preVector[i][j];
+			current++;
+		}
+	}
+	return net;
+}
+
+//reads the dictionary of orbits from a binary file
+vector<vector<int>> read_dictionary_from_file(string dict_name){
+
+	vector<vector<int>> dictionary (1024, vector<int>(5, -1));
+	ifstream inputFileDict(dict_name, ios::in | ios::binary);
+	for (int i = 0; i < 1024; i++)
+		for (int j = 0; j < 5; j++)
+			inputFileDict.read((char*)&dictionary[i][j], sizeof(1));
+	inputFileDict.close();
+	return dictionary;
+}
+
+//convert a reduntand array of sets to a nonreduntant adjacency bitset.
+unsigned int convert_Redundant_Adjacency_to_Bitset(unsigned int* input, int k){
+	unsigned int output = 0;  //a bit set representing the adjacency matrix
+	const unsigned int a = 1 << (sizeof(unsigned int) * 8 - 1);
+	unsigned int b = 0;
+
+	//fill adjacency matrix information into the bitset
+	int count = 0;
+	for (int i = 1; i < k; i++)
+		for (int j = 0; j < i; j++){
+			output = output << 1;
+			count++;
+			b = input[i] & a;
+			output = output | (b != 0 ? 1 : 0);
+			input[i] = input[i] << 1;
+		}
+	output = output << (32-count);
+	return output;
+}
+
+//compute Graphlet Degree Distribution
+vector<vector<int>> compute_GDD(vector<vector<int>> orbit_dict, network n, int k){
+	vector<vector<int>> graphlets = enumerateSubgraphs(n, k);
+	vector<vector<unsigned int>> graphletAdjacencies = adjacencyNSFromGraphlets(n, graphlets);
+	vector<nauty_output> graphlets_canons = getCanons(k, graphletAdjacencies);
+	vector<unsigned int> canon_bitset(graphlets.size());
+
+
+	vector<vector<int>> GDD((n.delimiterInfo.size() - 1), vector<int>(73, 0));
+	for (int i = 0; i < graphlets.size(); i++){
+		canon_bitset[i] = convert_Redundant_Adjacency_to_Bitset(graphlets_canons[i].canonical, k);
+		canon_bitset[i] = canon_bitset[i] >> 22;
+		int p, orb;
+		for (int j = 0; j < k; j++){
+			p = find_value(graphlets_canons[i].label, j, k);
+			orb = orbit_dict[canon_bitset[i]][p];
+			GDD[graphlets[i][j]][orb]++;
+		}
+	}
+	return GDD;
+}
+
+int find_value(int* search, int number, int size){
+	for (int i = 0; i < size; i++)
+		if (search[i] == number)
+			return i;
+	return -1;
 }

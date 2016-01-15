@@ -8,18 +8,33 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "nautyinit.h"
-#include "Build_Dictionary.h"
 
 using namespace std;
 
-const vector<vector<int>> enumerateSubgraphs(vector<int> &, vector<int> & , int);
+struct network {
+	vector<int> graphVector;		//graphVector is the finall vector used to represent the network
+	vector<int> delimiterInfo;	//the array used to store the information on where in graphVector each array starts
+	int Number_of_Edges;
+};
+
+struct nauty_output {
+	int label[MAXN], ptn[MAXN], orbits[MAXN];
+	graph *canonical = (graph *)malloc(MAXN * sizeof(int) * 2);
+};
+
+const vector<vector<int>> enumerateSubgraphs(network& , int);
 void extendSubgraph(vector<int>, vector<int>, int, vector<int>&, vector<int>&, const int, vector<vector<int>> &);
 void removeSmallerThanW(vector<int>&, int & );
 vector<int> findNeighborhood(vector<int>&, vector<int>&, vector<int>&);
 bool ifContains(vector<int>&, int);
 vector<int> vertexNeigbors(vector<int>&, vector<int>&, int ); 
-vector<int> adjacencyFromGraphlets(vector<int>&, vector<int>&, vector<vector<int>> &);
-vector<vector<unsigned int>> adjacencyNSFromGraphlets(vector<int>&, vector<int>&, vector<vector<int>> &);
+vector<vector<unsigned int>> adjacencyNSFromGraphlets(network&, vector<vector<int>> &);
 int ifConnected(int ,int ,vector<int>& ,vector<int>& );
-unsigned int *  ComputeLabel(unsigned int n, unsigned int *adjacencyMatrix);
-vector<unsigned int *> getCanons(unsigned int, vector<vector<unsigned int>>);
+nauty_output  ComputeCanon(unsigned int, unsigned int *);
+vector<nauty_output> getCanons(unsigned int, vector<vector<unsigned int>>);
+network read_network_from_file(string);
+vector<vector<int>> read_dictionary_from_file(string);
+unsigned int convert_Redundant_Adjacency_to_Bitset(unsigned int*, int);
+vector<vector<int>> compute_GDD(vector<vector<int>>, network, int);
+int find_value(int*, int, int);
+

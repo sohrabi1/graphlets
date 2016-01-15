@@ -118,9 +118,6 @@ nauty_output  ComputeCanonAdj(unsigned int n, unsigned int *NCAdjacencyMatrix)
 {
 	nauty_output output;
 	int m = 1;
-	//graph *canon = (graph *)malloc(n * sizeof(int) * 2);
-
-	//int lab[MAXN], ptn[MAXN], orbits[MAXN];
 	DEFAULTOPTIONS(options);
 	statsblk(stats);
 	setword workspace[160 * MAXM];
