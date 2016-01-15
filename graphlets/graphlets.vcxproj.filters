@@ -23,10 +23,10 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="methods.h">
+    <ClInclude Include="nautyinit.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="nautyinit.h">
+    <ClInclude Include="methods.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

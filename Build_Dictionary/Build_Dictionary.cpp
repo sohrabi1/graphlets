@@ -2,29 +2,34 @@
 //
 
 #include <vector>
+#include<fstream>
 #include "Build_Dictionary.h"
 
+
 using namespace std;
+
+
+
 
 int main()
 {
 	//make library of all possible adjacency matrices with size 5
 	vector<unsigned int> allAdj = mkLibAdj();
-	//unsigned int* outAdj=convert_NR_to_Set_array(allAdj[868]);
-	//unsigned int * canonical = ComputeCanonAdj(5, outAdj);
-	//unsigned int bitset = convert_NR_to_Set_array(outAdj);
+	vector<vector<int>> Dict = mkDict();
+	ofstream dictFile("dictionary.bin", ios::out | ios::binary);
+	for (int i = 0; i < Dict.size(); i++)
+		for (int j = 0; j < 5; j++)
+			dictFile.write(reinterpret_cast<const char*>(&Dict[i][j]), sizeof(Dict[i][j]));
+	dictFile.close();
+	///
 
-	unsigned int a = 4290772992;
-	unsigned int* outAdj = convert_NR_to_Set_array(a);
-	unsigned int* canonical = ComputeCanonAdj(5, outAdj);
-	unsigned int bitset = convert_R_Adjacency_to_Bitset(canonical);
 	return 0;
 }
 
 //make library of all possible adjacency matrices with size 5
 vector<unsigned int> mkLibAdj(){
 	vector<unsigned int> library;
-	unsigned int bit = 0 ;
+	unsigned int bit = 0;
 	int counter = 0;
 	for (int j = 0; j < 2; j++)
 		mkLibAdjHelper(library, counter, bit, j);
@@ -109,12 +114,13 @@ unsigned int* convert_NR_to_Set_array(unsigned int input){
 }
 
 //outputs canonical adjacency matrix of a noncanonical adjacency matrix
-unsigned int *  ComputeCanonAdj(unsigned int n, unsigned int *NCAdjacencyMatrix)
+nauty_output  ComputeCanonAdj(unsigned int n, unsigned int *NCAdjacencyMatrix)
 {
+	nauty_output output;
 	int m = 1;
-	graph *canon = (graph *)malloc(n * sizeof(int) * 2);
+	//graph *canon = (graph *)malloc(n * sizeof(int) * 2);
 
-	int lab[MAXN], ptn[MAXN], orbits[MAXN];
+	//int lab[MAXN], ptn[MAXN], orbits[MAXN];
 	DEFAULTOPTIONS(options);
 	statsblk(stats);
 	setword workspace[160 * MAXM];
@@ -123,9 +129,9 @@ unsigned int *  ComputeCanonAdj(unsigned int n, unsigned int *NCAdjacencyMatrix)
 	options.writeautoms = FALSE;
 	options.getcanon = TRUE;
 
-	nauty(NCAdjacencyMatrix, lab, ptn, NULL, orbits, &options, &stats, workspace, 160 * MAXM, m, n, canon);
+	nauty(NCAdjacencyMatrix, output.label, output.ptn, NULL, output.orbits, &options, &stats, workspace, 160 * MAXM, m, n, output.canonical);
 
-	return canon;
+	return output;
 }
 
 //convert a reduntand array of sets to a nonreduntant adjacency bitset.
@@ -147,16 +153,9 @@ unsigned int convert_R_Adjacency_to_Bitset(unsigned int* input){
 
 }
 
-/*
-int* Find_Orbits(unsigned int adjacencyNR){
-
-
-}
-*/
-
 
 vector<int> Graphlet_Lib(unsigned int adjacency){
-	vector<int> orbits(5, 0);
+	vector<int> orbits(5, -1);
 	switch (adjacency){
 	case 4194304:
 		orbits = { -1, -1, -1, 0, 0 };
@@ -180,7 +179,7 @@ vector<int> Graphlet_Lib(unsigned int adjacency){
 		orbits = { -1, 9, 10, 10, 11 };
 		return orbits;
 	case 230686720:
-		orbits = { -1, 12, 12, 13, 13 }; 
+		orbits = { -1, 12, 12, 13, 13 };
 		return orbits;
 	case 767557632:
 		orbits = { -1, 14, 14, 14, 14 };
@@ -242,9 +241,9 @@ vector<int> Graphlet_Lib(unsigned int adjacency){
 	case 3485466624:
 		orbits = { 68, 68, 68, 68, 69 };
 		return orbits;
-	//case 1069547520:
-		//orbits = { 70, 70, 71, 71, 71 };
-		//return orbits;
+	case 2143289344:
+		orbits = { 70, 70, 71, 71, 71 };
+		return orbits;
 	case 4290772992:
 		orbits = { 72, 72, 72, 72, 72 };
 		return orbits;
@@ -255,5 +254,34 @@ vector<int> Graphlet_Lib(unsigned int adjacency){
 	default:
 		return orbits;
 	}
-		
+
+}
+
+//fined the assigned number for orbits for a given graph as bitset
+vector<int> Find_Orbits(unsigned int adjacencyNR) {
+	vector<int> orbits(5);
+	unsigned int* outAdj = convert_NR_to_Set_array(adjacencyNR);
+	nauty_output nautyRes = ComputeCanonAdj(5, outAdj);
+	unsigned int bitset = convert_R_Adjacency_to_Bitset(nautyRes.canonical);
+	free(nautyRes.canonical);
+	vector<int> orb = Graphlet_Lib(bitset);
+
+	for (int i = 0; i < 5; i++)
+		orbits[nautyRes.label[i]] = orb[i];
+	return orbits;
+}
+
+//global function that makes the Dictionary of orbits NOTE: the index of the output vector represents the adjacency right shifted by 22.
+vector<vector<int>> mkDict() {
+	vector<unsigned int> lib = mkLibAdj();
+	vector<vector<int>> Dictionary(1024, vector<int>(5,-1));
+	for (int i = 0; i < lib.size(); i++) {
+		vector<int> orbits(5);
+		orbits = Find_Orbits(lib[i]);
+		unsigned int p = lib[i] >> 22;
+		for (int j = 0; j < 5; j++){
+			Dictionary[p][j] = orbits[j];
+		}
+	}
+	return Dictionary;
 }

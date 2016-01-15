@@ -13,7 +13,13 @@ using namespace std;
 
 int main()
 {
-	
+	vector<vector<int>> dictionary(1024, vector<int>(5, -1));
+	ifstream inputFileDict("dictionary.bin", ios::in | ios::binary);
+	for (int i = 0; i < 1024; i++)
+		for (int j = 0; j < 5; j++)
+			inputFileDict.read((char*)&dictionary[i][j], sizeof(1));
+	inputFileDict.close();
+
 	vector<vector<int>> preVector;
 
 	//read network from file
@@ -32,6 +38,7 @@ int main()
 		preVector[v1].push_back(v2);	//add corresponding info for an edge to the to vertices
 		preVector[v2].push_back(v1);
 	}
+	readNetwork.close();
 	//
 
 	vector<int> graphVector(NumberEdges * 2);		//graphVector is the finall vector used to represent the network
