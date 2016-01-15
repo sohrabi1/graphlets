@@ -18,14 +18,15 @@ int main()
 	vector<vector<int>> dictionary = read_dictionary_from_file("dictionary.bin");
 	network net = read_network_from_file("network.txt");
 
-	vector<vector<int>> gdd = compute_GDD(dictionary, net, 4);
+	vector<vector<int>> gdd(net.delimiterInfo.size(), vector<int>(73,0));
+	enumerateSubgraphs(net, 3, gdd, dictionary);
 
 	return 0;
 }
 
 
 
-const vector<vector<int>> enumerateSubgraphs(network& n, const int k)
+void enumerateSubgraphs(network& n, const int k, vector<vector<int>>& GDD, vector<vector<int>>& orbit_dict)
 {
 	const int nVertices = n.delimiterInfo.size() - 1;		//number of vertices in the graph
 	vector<vector<int>> answer;					//stores graphlets info
@@ -34,17 +35,16 @@ const vector<vector<int>> enumerateSubgraphs(network& n, const int k)
 	{
 		vector<int> extensionV = vertexNeigbors(n.graphVector, n.delimiterInfo, i);	//stores neigbors for each vertex
 		vector<int> subgraphV(1, i);
-		extendSubgraph(subgraphV, extensionV, i, n.graphVector, n.delimiterInfo, k, answer);
+		extendSubgraph(subgraphV, extensionV, i, n, k, GDD, orbit_dict);
 	}
 
-	return answer;
 }
 
-void extendSubgraph(vector<int> subgraphVertices, vector<int> extensionVertices, int v, vector<int>& graph, vector<int>& delimiter, const int k, vector<vector<int>>& answer)
+void extendSubgraph(vector<int> subgraphVertices, vector<int> extensionVertices, int v, network& n, const int k, vector<vector<int>>& GDD, vector<vector<int>>& orbit_dict)
 {
 	if (subgraphVertices.size() == k)
 	{
-		answer.push_back(subgraphVertices);
+		update_GDD(subgraphVertices, n, GDD, orbit_dict);
 		return;
 	}
 
@@ -62,17 +62,17 @@ void extendSubgraph(vector<int> subgraphVertices, vector<int> extensionVertices,
 		extVer.erase(extVer.begin() + i);		//remove w from extVer
 		removeSmallerThanW(extVer, w);			//remove elements in extVer if they are smaller than w (avoid graphlet repitition)
 
-		vector<int> neigbors = findNeighborhood(graph, delimiter, extVer);	//find the neighborhood of the remaining vertices
+		vector<int> neigbors = findNeighborhood(n.graphVector, n.delimiterInfo, extVer);	//find the neighborhood of the remaining vertices
 
 
 		//add neighboring vertices of w if they are bigger than v and in exclusive neighborhood of other vertices in extensionVertices
-		for (int j = delimiter[w]; j < delimiter[w + 1]; j++)
+		for (int j = n.delimiterInfo[w]; j < n.delimiterInfo[w + 1]; j++)
 		{
-			if ((graph[j] > w) && (!ifContains(neigbors, graph[j])) && (!ifContains(extVer, graph[j])))
-				extVer.push_back(graph[j]);
+			if ((n.graphVector[j] > w) && (!ifContains(neigbors, n.graphVector[j])) && (!ifContains(extVer, n.graphVector[j])))
+				extVer.push_back(n.graphVector[j]);
 		}
 
-		extendSubgraph(subVer, extVer, v, graph, delimiter, k, answer);
+		extendSubgraph(subVer, extVer, v, n, k, GDD, orbit_dict);
 	}
 	return;
 }
@@ -146,26 +146,22 @@ vector<int> adjacencyFromGraphlets(vector<int>& graph, vector<int>& delimiter, v
 }
 
 //outputs nonsparse adjacency matrix
-vector<vector<unsigned int>> adjacencyNSFromGraphlets(network& n, vector<vector<int>> & graphlets)
+vector<unsigned int> adjacencyNSFromGraphlets(network& n, vector<int> & graphlet)
 {
 	unsigned int a = 1 << (sizeof(unsigned int)*8 -1);
-	vector<vector<unsigned int>> graphletsAdjacency(graphlets.size());
-	for (int i = 0; i < graphlets.size(); i++)
-	{
-		for (int j = 0; j < graphlets[0].size(); j++)
+	vector<unsigned int> graphletsAdjacency;
+		for (int j = 0; j < graphlet.size(); j++)
 		{
 			unsigned int bit = 0;
 			int ifEdge;
-			for (int k = graphlets[0].size()-1; k >=0 ; k--)
+			for (int k = graphlet.size()-1; k >=0 ; k--)
 			{
 				bit = bit >> 1;
-				ifEdge = ifConnected(graphlets[i][j], graphlets[i][k], n.graphVector, n.delimiterInfo);
+				ifEdge = ifConnected(graphlet[j], graphlet[k], n.graphVector, n.delimiterInfo);
 				bit = bit | (ifEdge == 1 ? a : 0);
 			}
-			graphletsAdjacency[i].push_back(bit);
+			graphletsAdjacency.push_back(bit);
 		}
-		
-	}
 	return graphletsAdjacency;
 }
 
@@ -197,10 +193,8 @@ nauty_output  ComputeCanon(unsigned int n, unsigned int *NCAdjacency)
 }
 
 //outputs canonical labling vector of an all canons of all graphlets
-vector<nauty_output> getCanons(unsigned int n, vector<vector<unsigned int>> graphletAdj){
-	vector<nauty_output> graphletCanon;
-	for (int i = 0; i < graphletAdj.size(); i++)
-		graphletCanon.push_back(ComputeCanon(n, &(graphletAdj[i])[0]));
+nauty_output getCanons(unsigned int n, vector<unsigned int> graphletAdj){
+	nauty_output graphletCanon = ComputeCanon(n, &(graphletAdj[0]));
 	return graphletCanon;
 }
 
@@ -278,25 +272,19 @@ unsigned int convert_Redundant_Adjacency_to_Bitset(unsigned int* input, int k){
 }
 
 //compute Graphlet Degree Distribution
-vector<vector<int>> compute_GDD(vector<vector<int>> orbit_dict, network n, int k){
-	vector<vector<int>> graphlets = enumerateSubgraphs(n, k);
-	vector<vector<unsigned int>> graphletAdjacencies = adjacencyNSFromGraphlets(n, graphlets);
-	vector<nauty_output> graphlets_canons = getCanons(k, graphletAdjacencies);
-	vector<unsigned int> canon_bitset(graphlets.size());
+void update_GDD(vector<int> graphlet, network& n, vector<vector<int>>& GDD, vector<vector<int>>& orbit_dict){
+	int k = graphlet.size();
 
-
-	vector<vector<int>> GDD((n.delimiterInfo.size() - 1), vector<int>(73, 0));
-	for (int i = 0; i < graphlets.size(); i++){
-		canon_bitset[i] = convert_Redundant_Adjacency_to_Bitset(graphlets_canons[i].canonical, k);
-		canon_bitset[i] = canon_bitset[i] >> 22;
+	vector<unsigned int> graphletAdjacency = adjacencyNSFromGraphlets(n, graphlet);
+	nauty_output graphlet_canon = getCanons(k, graphletAdjacency);
+	unsigned int canon_bitset = convert_Redundant_Adjacency_to_Bitset(graphlet_canon.canonical, k);
+		canon_bitset = canon_bitset >> 22;
 		int p, orb;
-		for (int j = 0; j < k; j++){
-			p = find_value(graphlets_canons[i].label, j, k);
-			orb = orbit_dict[canon_bitset[i]][p];
-			GDD[graphlets[i][j]][orb]++;
+		for (int i = 0; i < k; i++){
+			p = find_value(graphlet_canon.label, i, k);
+			orb = orbit_dict[canon_bitset][p];
+			GDD[graphlet[i]][orb]++;
 		}
-	}
-	return GDD;
 }
 
 int find_value(int* search, int number, int size){
