@@ -16,11 +16,13 @@ int main()
 {
 
 	vector<vector<int>> dictionary = read_dictionary_from_file("dictionary.bin");
-	network net = read_network_from_file("network.txt");
+	network net = read_network_from_file("exmpl100.in");
 
-	vector<vector<int>> gdd(net.delimiterInfo.size(), vector<int>(73,0));
+	vector<vector<int>> gdd(net.delimiterInfo.size()-1, vector<int>(73,0));
+	enumerateSubgraphs(net, 5, gdd, dictionary);
+	enumerateSubgraphs(net, 4, gdd, dictionary);
 	enumerateSubgraphs(net, 3, gdd, dictionary);
-
+	enumerateSubgraphs(net, 2, gdd, dictionary);
 	return 0;
 }
 
@@ -62,13 +64,13 @@ void extendSubgraph(vector<int> subgraphVertices, vector<int> extensionVertices,
 		extVer.erase(extVer.begin() + i);		//remove w from extVer
 		removeSmallerThanW(extVer, w);			//remove elements in extVer if they are smaller than w (avoid graphlet repitition)
 
-		vector<int> neigbors = findNeighborhood(n.graphVector, n.delimiterInfo, extVer);	//find the neighborhood of the remaining vertices
+		vector<int> neigbors = findNeighborhood(n.graphVector, n.delimiterInfo, subgraphVertices);	//find the neighborhood of the remaining vertices
 
 
-		//add neighboring vertices of w if they are bigger than v and in exclusive neighborhood of other vertices in extensionVertices
+		//add neighboring vertices of w if they are bigger than v and in exclusive neighborhood of other vertices in subgraphVertices
 		for (int j = n.delimiterInfo[w]; j < n.delimiterInfo[w + 1]; j++)
 		{
-			if ((n.graphVector[j] > w) && (!ifContains(neigbors, n.graphVector[j])) && (!ifContains(extVer, n.graphVector[j])))
+			if ((n.graphVector[j] > v) && (!ifContains(neigbors, n.graphVector[j])) && (!ifContains(extVer, n.graphVector[j])))
 				extVer.push_back(n.graphVector[j]);
 		}
 
@@ -118,8 +120,9 @@ vector<int> findNeighborhood(vector<int>& graph, vector<int>& delimiter, vector<
 
 
 //check if input vector contains an element
-bool ifContains(vector<int>& input, int element)
+bool ifContains(vector<int> input, int element)
 {
+	input.push_back(-1);
 	return find(input.begin(), input.end(), element) != input.end();
 }
 
@@ -272,7 +275,7 @@ unsigned int convert_Redundant_Adjacency_to_Bitset(unsigned int* input, int k){
 }
 
 //compute Graphlet Degree Distribution
-void update_GDD(vector<int> graphlet, network& n, vector<vector<int>>& GDD, vector<vector<int>>& orbit_dict){
+void update_GDD(vector<int>& graphlet, network& n, vector<vector<int>>& GDD, vector<vector<int>>& orbit_dict){
 	int k = graphlet.size();
 
 	vector<unsigned int> graphletAdjacency = adjacencyNSFromGraphlets(n, graphlet);
