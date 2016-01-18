@@ -37,4 +37,5 @@ vector<vector<int>> read_dictionary_from_file(string);
 unsigned int convert_Redundant_Adjacency_to_Bitset(unsigned int*, int);
 void update_GDD(vector<int>&, network&, vector<vector<int>>&, vector<vector<int>>&);
 int find_value(int*, int, int);
-
+void write_in_file(vector<vector<int>>);
+bool check_answers(vector<vector<int>>&);

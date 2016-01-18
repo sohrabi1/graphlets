@@ -5,6 +5,7 @@
 #include <fstream>
 #include <algorithm>
 #include <string>
+#include <ctime>
 #include "methods.h"
 
 
@@ -19,10 +20,17 @@ int main()
 	network net = read_network_from_file("exmpl100.in");
 
 	vector<vector<int>> gdd(net.delimiterInfo.size()-1, vector<int>(73,0));
+	clock_t startTime, endTime;
+	startTime = clock();
 	enumerateSubgraphs(net, 5, gdd, dictionary);
 	enumerateSubgraphs(net, 4, gdd, dictionary);
 	enumerateSubgraphs(net, 3, gdd, dictionary);
 	enumerateSubgraphs(net, 2, gdd, dictionary);
+	//write_in_file(gdd);
+	endTime = clock();
+	double t= (endTime - startTime) / CLOCKS_PER_SEC;
+
+	bool check = check_answers(gdd);
 	return 0;
 }
 
@@ -30,10 +38,9 @@ int main()
 
 void enumerateSubgraphs(network& n, const int k, vector<vector<int>>& GDD, vector<vector<int>>& orbit_dict)
 {
-	const int nVertices = n.delimiterInfo.size() - 1;		//number of vertices in the graph
 	vector<vector<int>> answer;					//stores graphlets info
 
-	for (int i = 0; i < nVertices; i++)
+	for (int i = 0; i < (n.delimiterInfo.size() - 1) ; i++)
 	{
 		vector<int> extensionV = vertexNeigbors(n.graphVector, n.delimiterInfo, i);	//stores neigbors for each vertex
 		vector<int> subgraphV(1, i);
@@ -288,6 +295,7 @@ void update_GDD(vector<int>& graphlet, network& n, vector<vector<int>>& GDD, vec
 			orb = orbit_dict[canon_bitset][p];
 			GDD[graphlet[i]][orb]++;
 		}
+	free(graphlet_canon.canonical); 
 }
 
 int find_value(int* search, int number, int size){
@@ -295,4 +303,25 @@ int find_value(int* search, int number, int size){
 		if (search[i] == number)
 			return i;
 	return -1;
+}
+
+void write_in_file(vector<vector<int>> gdd){
+	ofstream answers("answers.out", ios::out | ios::binary);
+	for (int i = 0; i < gdd.size(); i++)
+		for (int j = 0; j < 73; j++)
+			answers.write(reinterpret_cast<const char*>(&gdd[i][j]), sizeof(gdd[i][j]));
+	answers.close();
+}
+
+bool check_answers(vector<vector<int>>& gdd){
+	vector<vector<int>> ans(gdd.size(), vector<int>(73, 0));
+	ifstream inputFile("answers.out", ios::in | ios::binary);
+	for (int i = 0; i < gdd.size(); i++)
+		for (int j = 0; j < 73; j++)
+			inputFile.read((char*)&ans[i][j], sizeof(1));
+	inputFile.close();
+	for (int i = 0; i < gdd.size(); i++)
+		if (gdd[i] != ans[i])
+			return FALSE;
+	return TRUE;
 }
