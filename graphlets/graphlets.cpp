@@ -101,7 +101,6 @@ void extendSubgraph(vector<int>& subgraphVertices, vector<int>& extensionVertice
 
 	for (int i = 0; i < extensionVertices.size(); i++)		//remove an arbitrary chosen vertex every time from extensionVertices called w
 	{
-		t_start_s = clock();
 		w = extensionVertices[i];
 		vector<int> extVer = extensionVertices;
 
@@ -110,26 +109,49 @@ void extendSubgraph(vector<int>& subgraphVertices, vector<int>& extensionVertice
 		extVer.erase(extVer.begin() + i);		//remove w from extVer
 		removeSmallerThanW(extVer, w);			//remove elements in extVer if they are smaller than w (avoid graphlet repitition)
 
-		t_start = clock();
-		vector<int> neigbors = findNeighborhood(n.graphVector, n.delimiterInfo, subgraphVertices);	//find the neighborhood of the remaining vertices
-		t_end = clock();
-		t_findNeighborhood += t_end - t_start;
+		//vector<int> neigbors = findNeighborhood(n.graphVector, n.delimiterInfo, subgraphVertices);	//find the neighborhood of the remaining vertices
+
 
 
 		//add neighboring vertices of w if they are bigger than v and in exclusive neighborhood of other vertices in subgraphVertices
-		t_start = clock();
+		vector<bool> if_in_extVer (n.delimiterInfo.size(), FALSE);
+		for (int j = 0; j < extVer.size(); j++)
+			if_in_extVer[extVer[j]] = TRUE;
+
 		for (int j = n.delimiterInfo[w]; j < n.delimiterInfo[w + 1]; j++)
 		{
-			if ((n.graphVector[j] > v) && (!ifContains(neigbors, n.graphVector[j])) && (!ifContains(extVer, n.graphVector[j])))
-				extVer.push_back(n.graphVector[j]);
+			if (n.graphVector[j] > v)
+			{
+				bool a = FALSE;
+				//go over a loop to see if n.graphVector[j] is a neigbor of subgraphVertices
+				for (int p = 0; p < subgraphVertices.size(); p++)
+					for (int q = n.delimiterInfo[subgraphVertices[p]]; q < n.delimiterInfo[subgraphVertices[p] + 1]; q++)
+						if (n.graphVector[j] == n.graphVector[q])
+						{
+							a = TRUE;
+							break;
+						}
+
+				
+				if(!a)
+					if_in_extVer[n.graphVector[j]] = TRUE;
+			}		
 		}
-		t_end = clock();
-		t_addNeighbor += t_end - t_start;
+		int count = 0;
+		for (int j = 0; j < if_in_extVer.size(); j++)
+			if (if_in_extVer[j] == TRUE)
+				count++;
+		vector<int> extVer2(count);
+		count = 0;
+		for (int j = 0; j < if_in_extVer.size(); j++)
+			if (if_in_extVer[j] == TRUE){
+				extVer2[count] = j;
+				count++;
+			}
+	
 
-		t_end_s = clock();
-		t_extendSubgraph += t_end_s - t_start_s;
 
-		extendSubgraph(subVer, extVer, v, n, net_adjacency, k, GDD, orbit_dict);
+		extendSubgraph(subVer, extVer2, v, n, net_adjacency, k, GDD, orbit_dict);
 	}
 	return;
 }
@@ -163,7 +185,11 @@ void removeSmallerThanW(vector<int>& inputVector, int & w)
 //find the neighborhood of the remaining vertices in ExtensionVertices(EV)
 vector<int> findNeighborhood(vector<int>& graph, vector<int>& delimiter, vector<int>& EV)
 {
+	int max_size=0;
+	for (int i = 0; i < EV.size(); i++)
+		max_size += (delimiter[EV[i] + 1] - delimiter[EV[i]]);
 	vector<int> neighborhood;
+	neighborhood.reserve(max_size);
 
 	for (int i = 0; i < EV.size(); i++)
 		for (int j = delimiter[EV[i]]; j < delimiter[EV[i] + 1]; j++)
