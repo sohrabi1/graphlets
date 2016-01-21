@@ -1,16 +1,16 @@
 // graphlets.cpp : Defines the entry point for the console application.
 //
+// graphlets.cpp : Defines the entry point for the console application.
+//
 #include <vector>
 #include <iostream>
 #include <fstream>
 #include <algorithm>
 #include <ctime>
-#include <set>
 #include "methods.h"
 
 
 using namespace std;
-
 
 
 int main()
@@ -23,49 +23,44 @@ int main()
 	network net = read_network_from_file("exmpl100.in");
 	vector<vector<int>> network_adjacency = sparse_network(net);
 
-	vector<vector<int>> gdd(net.Number_of_vertices, vector<int>(73,0));
+	vector<vector<int>> gdd(net.Number_of_Vertices, vector<int>(73, 0));
 	enumerateSubgraphs(net, network_adjacency, 5, gdd, dictionary);
 	enumerateSubgraphs(net, network_adjacency, 4, gdd, dictionary);
 	enumerateSubgraphs(net, network_adjacency, 3, gdd, dictionary);
 	enumerateSubgraphs(net, network_adjacency, 2, gdd, dictionary);
-	write_in_file(gdd);
 	endTime = clock();
-	double t= (endTime - startTime) / CLOCKS_PER_SEC;
-	//double tsec_update_GDD = t_update_GDD / CLOCKS_PER_SEC;
-	//double tsec_extendSubgraph = t_extendSubgraph / CLOCKS_PER_SEC;
-	//double tsec_adjacencyNSFromGraphlets = t_adjacencyNSFromGraphlets / CLOCKS_PER_SEC;
-	//double tsec_getCanons = t_getCanons / CLOCKS_PER_SEC;
-	//double tsec_update_loop = t_update_loop / CLOCKS_PER_SEC;
-	//double tsec_findNeighborhood = t_findNeighborhood / CLOCKS_PER_SEC;
-	//double tsec_addNeighbor = t_addNeighbor / CLOCKS_PER_SEC;
+	double t = (endTime - startTime) / CLOCKS_PER_SEC;
+
+
 	bool check = check_answers(gdd);
+
 	return 0;
 }
 
 
 vector<vector<int>> sparse_network(network& net)
 {
-	int r = (net.Number_of_vertices) % 32;
-	int fraction = (net.Number_of_vertices) / 32;
-	vector<vector<int>> network_adjacency(net.Number_of_vertices, vector<int>((fraction + 1), 0));
+	int r = (net.Number_of_Vertices) % 32;
+	int fraction = (net.Number_of_Vertices) / 32;
+	vector<vector<int>> network_adjacency(net.Number_of_Vertices, vector<int>((fraction + 1), 0));
 	int if_connected;
-	for (int i = 0; i < net.Number_of_vertices; i++)
-		for (int j = 0; j < net.Number_of_vertices; j++)
+	for (int i = 0; i < net.Number_of_Vertices; i++)
+		for (int j = 0; j < net.Number_of_Vertices; j++)
 		{
-			if_connected = ifConnected(i, j, net.graphVector, net.delimiterInfo);
+			if_connected = ifConnected(i, j, net);
 			network_adjacency[i][j / 32] = network_adjacency[i][j / 32] << 1;
 			network_adjacency[i][j / 32] = network_adjacency[i][j / 32] | if_connected;
 		}
-	for (int i = 0; i < net.Number_of_vertices; i++)
+	for (int i = 0; i < net.Number_of_Vertices; i++)
 		network_adjacency[i][fraction] = network_adjacency[i][fraction] << (32 - r);
-	return network_adjacency ;
+	return network_adjacency;
 }
 
 void enumerateSubgraphs(network& n, vector<vector<int>>& net_adjacency, const int k, vector<vector<int>>& GDD, vector<vector<int>>& orbit_dict)
 {
-	for (int i = 0; i < n.Number_of_vertices ; i++)
+	for (int i = 0; i < n.Number_of_Vertices; i++)
 	{
-		std::set<int> extensionV = vertexNeigbors(n.graphVector, n.delimiterInfo, i);	//stores neigbors for each vertex
+		vector<int> extensionV = vertexNeigbors(n.gVector, n.dInfo, i);	//stores neigbors for each vertex
 		vector<int> subgraphV(1, i);
 		extendSubgraph(subgraphV, extensionV, i, n, net_adjacency, k, GDD, orbit_dict);
 	}
@@ -73,7 +68,7 @@ void enumerateSubgraphs(network& n, vector<vector<int>>& net_adjacency, const in
 }
 
 
-void extendSubgraph(vector<int>& subgraphVertices, std::set<int>& extensionVertices, int v, network& n, vector<vector<int>>& net_adjacency, const int k, vector<vector<int>>& GDD, vector<vector<int>>& orbit_dict)
+void extendSubgraph(vector<int>& subgraphVertices, vector<int>& extensionVertices, int v, network& n, vector<vector<int>>& net_adjacency, const int k, vector<vector<int>>& GDD, vector<vector<int>>& orbit_dict)
 {
 	if (subgraphVertices.size() == k)
 	{
@@ -85,74 +80,70 @@ void extendSubgraph(vector<int>& subgraphVertices, std::set<int>& extensionVerti
 
 	for (int i = 0; i < extensionVertices.size(); i++)		//remove an arbitrary chosen vertex every time from extensionVertices called w
 	{
-		std::set<int>::iterator itr = extensionVertices.begin();
-		for (int j = 0; j < i; j++)
-			itr=itr++;
-		w = *(itr);
-		std::set<int> extVer = extensionVertices;
+		w = extensionVertices[i];
+		vector<int> extVer = extensionVertices;
 		vector<int> subVer = subgraphVertices;
 		subVer.push_back(w);
-		extVer.erase(w);		//remove w from extVer
+		extVer.erase(extVer.begin() + i);		//remove w from extVer
 		removeSmallerThanW(extVer, w);			//remove elements in extVer if they are smaller than w (avoid graphlet repitition)
 
-
-
-		std::set<int> neigbors = findNeighborhood(n.graphVector, n.delimiterInfo, subgraphVertices);	//find the neighborhood of the remaining vertices
+		vector<int> neigbors = findNeighborhood(n, subgraphVertices);	//find the neighborhood of the remaining vertices
 
 		//add neighboring vertices of w if they are bigger than v and in exclusive neighborhood of other vertices in subgraphVertices
-		for (int j = n.delimiterInfo[w]; j < n.delimiterInfo[w + 1]; j++)
+
+		for (int j = n.dInfo[w]; j < n.dInfo[w + 1]; j++)
 		{
-			if ((n.graphVector[j] > v) && (!neigbors.count(n.graphVector[j])) )
-				extVer.insert(n.graphVector[j]);
+			if ((n.gVector[j] > v) && (!ifContains(neigbors, n.gVector[j])) && (!ifContains(extVer, n.gVector[j])))
+				extVer.push_back(n.gVector[j]);
 		}
-		
+
 		extendSubgraph(subVer, extVer, v, n, net_adjacency, k, GDD, orbit_dict);
 	}
 	return;
 }
 
 //stores neigbors for each vertex
-std::set<int> vertexNeigbors(vector<int>& graph, vector<int>& delimiter, int vertex)
+vector<int> vertexNeigbors(int* graph, int* delimiter, int vertex)
 {
-	std::set<int> extension;
+	vector<int> extension;
 	for (int i = delimiter[vertex]; i < delimiter[vertex + 1]; i++)
 	{
 		if (graph[i] > vertex)
-			extension.insert(graph[i]);
+			extension.push_back(graph[i]);
 	}
 	return extension;
 }
 
 //remove elements in inputVector if they are smaller than w 
-void removeSmallerThanW(std::set<int>& inputVector, int & w)
+void removeSmallerThanW(vector<int>& inputVector, int & w)
 {
-	for (std::set<int>::iterator itr = inputVector.begin(); itr != inputVector.end(); ++itr)
+	int* ptr;
+	for (int i = 0; i < inputVector.size(); i++)
 	{
-		if (*itr < w)
+		ptr = &inputVector[0];
+		if (*(ptr+i) < w)
 		{
-			inputVector.erase(*itr);
-			--itr;
+			inputVector.erase(inputVector.begin() + i);
+			i--;
 		}
 	}
 }
 
 
 //find the neighborhood of the remaining vertices in ExtensionVertices(EV)
-std::set<int> findNeighborhood(vector<int>& graph, vector<int>& delimiter, vector<int>& SV)
+vector<int> findNeighborhood(network& n, vector<int>& EV)
 {
-//	int sv_size = SV.size();
-//	int max_size=0;
-//	for (int i = 0; i < sv_size; i++)
-//		max_size += (delimiter[SV[i] + 1] - delimiter[SV[i]]);
-	std::set<int> neighborhood;
-	//neighborhood.reserve(max_size);
-
-	for (int i = 0; i < SV.size(); i++)
-		for (int j = delimiter[SV[i]]; j < delimiter[SV[i]]; j++)
+	vector<int> neighborhood;
+	int* m = &EV[0];
+	for (int i = 0; i < EV.size(); i++)
+		for (int j = n.dInfo[m[i]]; j < n.dInfo[m[i] + 1]; j++)
 		{
-			neighborhood.insert(graph[j]);
+			neighborhood.push_back(n.gVector[j]);
 		}
+
 	return neighborhood;
+
+
 }
 
 
@@ -164,20 +155,20 @@ bool ifContains(vector<int>& input, int element)
 	return found;
 }
 
-//outputs sparse adjacency matrix
-vector<int> adjacencyFromGraphlets(vector<int>& graph, vector<int>& delimiter, vector<vector<int>> & graphlets)
+/*outputs sparse adjacency matrix
+vector<int> adjacencyFromGraphlets(vector<vector<int>>& net_adjacency, vector<vector<int>> & graphlets)
 {
 	vector<int> graphletsAdjacency;
 	for (int i = 0; i < graphlets.size(); i++)
 	{
 		int bit = 0;
 		int ifEdge;
-		for (int j = 1; j < graphlets[0].size();j++)
+		for (int j = 1; j < graphlets[0].size(); j++)
 		{
 			for (int k = 0; k < j; k++)
 			{
 				bit = bit << 1;
-				ifEdge = ifConnected(graphlets[i][j], graphlets[i][k], graph, delimiter);
+				ifEdge = ifConnected_fast(graphlets[i][j], graphlets[i][k], net_adjacency);
 				bit = bit | ifEdge;
 			}
 		}
@@ -185,35 +176,35 @@ vector<int> adjacencyFromGraphlets(vector<int>& graph, vector<int>& delimiter, v
 	}
 	return graphletsAdjacency;
 }
-
+*/
 //outputs nonsparse adjacency matrix
 vector<unsigned int> adjacencyNSFromGraphlets(vector<vector<int>>& net_adjacency, vector<int> & graphlet)
 {
 	int s = graphlet.size();
-	unsigned int a = 1 << (sizeof(unsigned int)*8 -1);
+	unsigned int a = 1 << (sizeof(unsigned int) * 8 - 1);
 	vector<unsigned int> graphletsAdjacency(s);
-		for (int j = 0; j < s; j++)
+	for (int j = 0; j < s; j++)
+	{
+		unsigned int bit = 0;
+		int ifEdge;
+		for (int k = s - 1; k >= 0; k--)
 		{
-			unsigned int bit = 0;
-			int ifEdge;
-			for (int k = s-1; k >=0 ; k--)
-			{
-				bit = bit >> 1;
-				ifEdge = ifConnected_fast(graphlet[j], graphlet[k], net_adjacency);
-				bit = bit | (ifEdge == 1 ? a : 0);
-			}
-			graphletsAdjacency[j] = bit;
+			bit = bit >> 1;
+			ifEdge = ifConnected_fast(graphlet[j], graphlet[k], net_adjacency);
+			bit = bit | (ifEdge == 1 ? a : 0);
 		}
+		graphletsAdjacency[j] = bit;
+	}
 	return graphletsAdjacency;
 }
 
-//check if two vertices are connected in a graph as network
-int ifConnected(int vertex1, int vertex2, vector<int>& graph, vector<int>& delimiter)
+int ifConnected(int vertex1, int vertex2, network& n)
 {
-	if (find(graph.begin() + delimiter[vertex1], graph.begin() + delimiter[vertex1 + 1] , vertex2) != (graph.begin() + delimiter[vertex1 + 1] ))
-		return 1;
+	for (int j = n.dInfo[vertex1]; j < n.dInfo[vertex1 + 1]; j++)
+		if (n.gVector[j] == vertex2)
+			return 1;
 	return 0;
-
+		
 }
 
 //check if two vertices are connected in a graph as adjacency
@@ -233,7 +224,7 @@ nauty_output  ComputeCanon(unsigned int n, unsigned int *NCAdjacency)
 	options.writeautoms = FALSE;
 	options.getcanon = TRUE;
 
-	nauty(NCAdjacency, output.label, output.ptn, nullptr, output.orbits, &options, &stats, workspace, 160 * MAXM, m, n, output.canonical); 
+	nauty(NCAdjacency, output.label, output.ptn, nullptr, output.orbits, &options, &stats, workspace, 160 * MAXM, m, n, output.canonical);
 
 	return output;
 }
@@ -269,27 +260,29 @@ network read_network_from_file(string file_name){
 	readNetwork.close();
 	//
 
-	net.graphVector.resize(net.Number_of_Edges * 2);		//graphVector is the finall vector used to represent the network
-	net.delimiterInfo.resize(preVector.size() + 1);			//the array used to store the information on where in graphVector each array starts
-	net.delimiterInfo[0] = 0;
+	net.Number_of_Vertices = preVector.size();
+	//net.graphVector.resize(net.Number_of_Edges * 2);		//graphVector is the finall vector used to represent the network
+	//net.delimiterInfo.resize(preVector.size() + 1);			//the array used to store the information on where in graphVector each array starts
+	net.dInfo[0] = 0;
 	int current = 0;								//to indicate where in the graphVector we are
 	for (int i = 0; i < preVector.size(); i++)
 	{
-		net.delimiterInfo[i + 1] = net.delimiterInfo[i] + preVector[i].size();
+		net.dInfo[i + 1] = net.dInfo[i] + preVector[i].size();
 		for (int j = 0; j < preVector[i].size(); j++)
 		{
-			net.graphVector[current] = preVector[i][j];
+			net.gVector[current] = preVector[i][j];
 			current++;
 		}
 	}
-	net.Number_of_vertices = net.delimiterInfo.size() - 1;
+
+
 	return net;
 }
 
 //reads the dictionary of orbits from a binary file
 vector<vector<int>> read_dictionary_from_file(string dict_name){
 
-	vector<vector<int>> dictionary (1024, vector<int>(5, -1));
+	vector<vector<int>> dictionary(1024, vector<int>(5, -1));
 	ifstream inputFileDict(dict_name, ios::in | ios::binary);
 	for (int i = 0; i < 1024; i++)
 		for (int j = 0; j < 5; j++)
@@ -314,7 +307,7 @@ unsigned int convert_Redundant_Adjacency_to_Bitset(unsigned int* input, int k){
 			output = output | (b != 0 ? 1 : 0);
 			input[i] = input[i] << 1;
 		}
-	output = output << (32-count);
+	output = output << (32 - count);
 	return output;
 }
 
@@ -322,11 +315,11 @@ unsigned int convert_Redundant_Adjacency_to_Bitset(unsigned int* input, int k){
 
 //compute Graphlet Degree Distribution
 void update_GDD(vector<int>& graphlet, network& n, vector<vector<int>>& net_adjacency, vector<vector<int>>& GDD, vector<vector<int>>& orbit_dict){
-	
-	int k = graphlet.size();
 
+	int k = graphlet.size();
 	vector<unsigned int> graphletAdjacency = adjacencyNSFromGraphlets(net_adjacency, graphlet);
 	nauty_output graphlet_canon = getCanons(k, graphletAdjacency);
+
 	unsigned int canon_bitset = convert_Redundant_Adjacency_to_Bitset(graphlet_canon.canonical, k);
 	canon_bitset = canon_bitset >> 22;
 	int p, orb;
@@ -336,7 +329,7 @@ void update_GDD(vector<int>& graphlet, network& n, vector<vector<int>>& net_adja
 		GDD[graphlet[i]][orb]++;
 	}
 
-	free(graphlet_canon.canonical); 
+	free(graphlet_canon.canonical);
 
 }
 
@@ -367,7 +360,6 @@ bool check_answers(vector<vector<int>>& gdd){
 			return FALSE;
 	return TRUE;
 }
-
 
 /*vector<bool> if_in_extVer (n.delimiterInfo.size(), FALSE);
 for (int j = 0; j < extVer.size(); j++)
