@@ -30,9 +30,11 @@ int main()
 	enumerateSubgraphs(net, network_adjacency, 2, gdd, dictionary);
 	endTime = clock();
 	double t = (endTime - startTime) / CLOCKS_PER_SEC;
-
-
 	bool check = check_answers(gdd);
+	cout << check << endl << t << endl;
+
+	free(net.gVector);
+	free(net.dInfo);
 
 	return 0;
 }
@@ -58,13 +60,47 @@ vector<vector<int>> sparse_network(network& net)
 
 void enumerateSubgraphs(network& n, vector<vector<int>>& net_adjacency, const int k, vector<vector<int>>& GDD, vector<vector<int>>& orbit_dict)
 {
-	for (int i = 0; i < n.Number_of_Vertices; i++)
+	const int number_of_servers = 3;
+	int itr = 0;
+	for (int i = 0; i < number_of_servers; i++)
 	{
-		vector<int> extensionV = vertexNeigbors(n.gVector, n.dInfo, i);	//stores neigbors for each vertex
-		vector<int> subgraphV(1, i);
-		extendSubgraph(subgraphV, extensionV, i, n, net_adjacency, k, GDD, orbit_dict);
+		vector<int> initial_vertices((n.Number_of_Vertices % number_of_servers) ? n.Number_of_Vertices / number_of_servers + 1 : n.Number_of_Vertices / number_of_servers);
+		for (int j = 0; j <initial_vertices.size(); j++)
+		{
+			if (itr<n.Number_of_Vertices)
+			{
+				initial_vertices[j]=itr;
+				itr++;
+			}
+			else {
+				initial_vertices.resize(j);
+				break;
+			}
+		}
+		vector<vector<int>> gdd_temp = call_extendSubgraph(initial_vertices, n, net_adjacency, k, orbit_dict);
+		update_gdd_temp(gdd_temp, GDD);
 	}
 
+}
+
+vector<vector<int>> call_extendSubgraph(vector<int> initial_vertices, network& n, vector<vector<int>>& net_adjacency, const int k, vector<vector<int>>& orbit_dict)
+{
+	vector<vector<int>> gdd(n.Number_of_Vertices, vector<int>(73, 0));
+	for (int i = 0; i < initial_vertices.size(); i++)
+	{
+		vector<int> extensionV = vertexNeigbors(n.gVector, n.dInfo, initial_vertices[i]);	//stores neigbors for each vertex
+		vector<int> subgraphV(1, initial_vertices[i]);
+		extendSubgraph(subgraphV, extensionV, initial_vertices[i], n, net_adjacency, k, gdd, orbit_dict);
+	}
+	return gdd;
+}
+
+
+void update_gdd_temp(vector<vector<int>>& gdd_temp, vector<vector<int>>& GDD)
+{
+	for (int i = 0; i < GDD.size();i++)
+		for (int j=0; j < 73; j++)
+			GDD[i][j] += gdd_temp[i][j];
 }
 
 

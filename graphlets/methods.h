@@ -6,8 +6,7 @@
 using namespace std;
 
 struct network {
-	//vector<int> graphVector;		//graphVector is the finall vector used to represent the network
-	//vector<int> delimiterInfo;	//the array used to store the information on where in graphVector each array starts
+
 	int* gVector = static_cast<int *>(malloc(350 * sizeof(int)*2));;		//graphVector is the finall vector used to represent the network
 	int* dInfo = static_cast<int *>(malloc(150 * sizeof(int)));	//the array used to store the information on where in graphVector each array starts
 
@@ -23,6 +22,8 @@ struct nauty_output {
 vector<vector<int>> sparse_network(network&);
 void enumerateSubgraphs(network&, vector<vector<int>>&, const int, vector<vector<int>>&, vector<vector<int>>&);
 void extendSubgraph(vector<int>&, vector<int>&, int, network&, vector<vector<int>>&, const int, vector<vector<int>>&, vector<vector<int>>&);
+vector<vector<int>> call_extendSubgraph(vector<int>, network&, vector<vector<int>>&, const int, vector<vector<int>>&);
+void update_gdd_temp(vector<vector<int>>&, vector<vector<int>>&);
 void removeSmallerThanW(vector<int>&, int &);
 vector<int> findNeighborhood(network&, vector<int>&);
 bool ifContains(vector<int>&, int);
