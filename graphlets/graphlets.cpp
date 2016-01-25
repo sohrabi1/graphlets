@@ -6,12 +6,15 @@
 #include <iostream>
 #include <fstream>
 #include <algorithm>
+#include <string>
 #include <ctime>
 #include "methods.h"
 
 
-using namespace std;
 
+
+using namespace std;
+//using web::json;
 
 int main()
 {
@@ -434,3 +437,63 @@ count++;
 
 
 extendSubgraph(subVer, extVer2, v, n, net_adjacency, k, GDD, orbit_dict);  */
+
+vector<vector<int>> connect_server(network net)
+{
+	vector<vector<int>> gdd;
+
+
+	return gdd;
+}
+
+//creates GDD object from jason values 
+vector<vector<int>> GDD_generator(web::json::array jsonValue, network net)
+{
+	vector<vector<int>> igdd(73);
+	int i = 0;
+	for (auto itr = jsonValue.begin(); itr!=jsonValue.end(); ++itr)
+		{	
+			igdd[i/73][i%73] = jsonValue.at(i).as_integer();
+			i++;
+		}
+
+	return igdd;
+}
+
+//creates jason object from the network
+web::json::value network_to_jason(network net){
+	//web::json::value json_network = web::json::value::array();
+
+	std::vector<web::json::value> arrayNet(net.Number_of_Vertices + net.Number_of_Edges * 2 + 3);
+
+
+	utility::stringstream_t ss1;
+	ss1 << net.Number_of_Edges;
+	web::json::value numberEdge = web::json::value::parse(ss1);	
+	arrayNet.push_back(numberEdge);
+
+	utility::stringstream_t ss2;
+	ss1 << net.Number_of_Vertices;
+	web::json::value numberVer = web::json::value::parse(ss2);
+	arrayNet.push_back(numberVer);
+
+	for (int i = 0; i < (net.Number_of_Edges * 2); i++)
+	{
+		utility::stringstream_t ssi;
+		ssi << net.gVector[i];
+		web::json::value inserted = web::json::value::parse(ssi);
+		arrayNet.push_back(inserted);
+	}
+
+	for (int i = 0; i <= (net.Number_of_Vertices); i++)
+	{
+		utility::stringstream_t ssi;
+		ssi << net.dInfo[i];
+		web::json::value inserted = web::json::value::parse(ssi);
+		arrayNet.push_back(inserted);
+	}
+
+	web::json::value njson = web::json::value::array(arrayNet);
+	return njson;
+
+}

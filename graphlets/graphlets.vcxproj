@@ -56,7 +56,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>C:\Users\Salma\Documents\Visual Studio 2013\Projects\graphlets\Build_Dictionary;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Users\Salma\Documents\Visual Studio 2013\Projects\graphlets\packages\cpprestsdk.v140.windesktop.msvcstl.dyn.rt-dyn.2.7.0\build\native\include;C:\Users\Salma\Documents\Visual Studio 2013\Projects\graphlets\packages\cpprestsdk.v140.windesktop.msvcstl.dyn.rt-dyn.2.7.0\build\native\include\cpprest;C:\Users\Salma\Documents\Visual Studio 2013\Projects\graphlets\Build_Dictionary;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>

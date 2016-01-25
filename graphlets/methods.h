@@ -2,6 +2,9 @@
 #include <vector>
 #include <stdlib.h>
 #include "nautyinit.h"
+#include <http_client.h>
+#include <ppltasks.h>
+#include <json.h>
 
 using namespace std;
 
@@ -40,3 +43,6 @@ void update_GDD(vector<int>&, network&, vector<vector<int>>&, vector<vector<int>
 int find_value(int*, int, int);
 void write_in_file(vector<vector<int>>);
 bool check_answers(vector<vector<int>>&);
+vector<vector<int>> connect_server(network);
+vector<vector<int>> GDD_generator(web::json::array, network );
+web::json::value network_to_jason(network);
