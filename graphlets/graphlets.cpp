@@ -6,7 +6,7 @@
 #include <iostream>
 #include <fstream>
 #include <algorithm>
-#include <string>
+//#include <string>
 #include <ctime>
 #include "methods.h"
 
@@ -80,7 +80,11 @@ void enumerateSubgraphs(network& n, vector<vector<int>>& net_adjacency, const in
 				break;
 			}
 		}
+
+		//call to server should be made here
 		vector<vector<int>> gdd_temp = call_extendSubgraph(initial_vertices, n, net_adjacency, k, orbit_dict);
+		
+		
 		update_gdd_temp(gdd_temp, GDD);
 	}
 
@@ -441,17 +445,17 @@ extendSubgraph(subVer, extVer2, v, n, net_adjacency, k, GDD, orbit_dict);  */
 vector<vector<int>> connect_server(network net)
 {
 	vector<vector<int>> gdd;
-
+	pplx::task<void> a= Get_GDD(net, gdd);
 
 	return gdd;
 }
 
+
 //creates GDD object from jason values 
-vector<vector<int>> GDD_generator(web::json::array jsonValue, network net)
+vector<vector<int>> GDD_generator(web::json::value jsonValue, network net)
 {
 	vector<vector<int>> igdd(73);
-	int i = 0;
-	for (auto itr = jsonValue.begin(); itr!=jsonValue.end(); ++itr)
+	for (int i=0; i<jsonValue.size(); ++i)
 		{	
 			igdd[i/73][i%73] = jsonValue.at(i).as_integer();
 			i++;
@@ -497,3 +501,68 @@ web::json::value network_to_jason(network net){
 	return njson;
 
 }
+
+
+pplx::task<void> Get_GDD(network net, vector<vector<int>>& gdds)
+{
+
+	return pplx::create_task([]
+	{
+		web::http::client::http_client client(L"http://blabla/value/");
+		return client.request(web::http::methods::GET); //returns An asynchronous operation type task<http_response> that is completed once a response from the request is received.  
+	})
+		
+	.then([=] (web::http::http_response response)
+	{
+		if (response.status_code() == web::http::status_codes::OK)
+		{
+			return response.extract_json();		//returns>JSON value from the body of this message.  pplx::task<json::value>
+		}
+
+		return pplx::create_task([]{return web::json::value(); });
+		//return web::json::value();
+	})
+	
+	.then([&](web::json::value jsonValue)
+	{
+		if (jsonValue.is_null())
+			return;
+		gdds = GDD_generator(jsonValue, net);
+		//writeGdds(gdds);
+		
+	});
+
+}
+
+
+
+
+
+	MyListener::MyListener(const http::uri& url) : m_listener(http_listener(url))
+
+	{
+		m_listener.open().wait();
+		m_listener.support(methods::GET,
+			std::tr1::bind(&MyListener::handle_get,
+			this,
+			std::tr1::placeholders::_1));
+//		m_listener.support(methods::PUT,
+//			std::tr1::bind(&MyListener::handle_put,
+//			this,
+//			std::tr1::placeholders::_1));
+//		m_listener.support(methods::POST,
+//			std::tr1::bind(&MyListener::handle_post,
+//			this,
+//			std::tr1::placeholders::_1));
+	};
+
+	void MyListener::respond(const http_request& request, const status_code& status, const json::value& response) {
+		request.reply(status, response);
+	}
+
+
+	void MyListener::handle_get(http_request message)
+	{
+		message.reply(status_codes::OK, U("Hello, World!"));
+	};
+

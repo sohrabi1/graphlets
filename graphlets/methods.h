@@ -2,9 +2,9 @@
 #include <vector>
 #include <stdlib.h>
 #include "nautyinit.h"
-#include <http_client.h>
+#include "http_client.h"
 #include <ppltasks.h>
-#include <json.h>
+#include "json.h"
 
 using namespace std;
 
@@ -46,3 +46,25 @@ bool check_answers(vector<vector<int>>&);
 vector<vector<int>> connect_server(network);
 vector<vector<int>> GDD_generator(web::json::array, network );
 web::json::value network_to_jason(network);
+pplx::task<void> Get_GDD(network, vector<vector<int>>&);
+
+#include <cpprest\http_listener.h>
+
+using namespace web::http::experimental::listener;
+using namespace web::http;
+using namespace web;
+
+class MyListener
+{
+public:
+	MyListener(const http::uri& url);
+	static void MyListener::respond(const http_request& request, const status_code& status, const json::value& response);
+
+private:
+	static void handle_get(http_request request);
+	//void handle_put(http_request request);
+	//void handle_post(http_request request);
+
+
+	http_listener m_listener;
+};
