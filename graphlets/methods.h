@@ -1,12 +1,20 @@
-
 #include <vector>
+#include <thread>
 #include <stdlib.h>
 #include "nautyinit.h"
 #include "http_client.h"
-#include <ppltasks.h>
+//#include <ppltasks.h>
 #include "json.h"
+#include <cpprest\http_listener.h>
+
+
 
 using namespace std;
+using namespace web::json;
+using namespace web::http::experimental::listener;
+using namespace web::http;
+using namespace web;
+
 
 struct network {
 
@@ -46,25 +54,14 @@ bool check_answers(vector<vector<int>>&);
 vector<vector<int>> connect_server(network);
 vector<vector<int>> GDD_generator(web::json::array, network );
 web::json::value network_to_jason(network);
-pplx::task<void> Get_GDD(network, vector<vector<int>>&);
+//pplx::task<void> Get_GDD(network, vector<vector<int>>&);
+web::json::value convert_gdd_to_json(vector<vector<int>>);
 
-#include <cpprest\http_listener.h>
 
-using namespace web::http::experimental::listener;
-using namespace web::http;
-using namespace web;
 
-class MyListener
-{
-public:
-	MyListener(const http::uri& url);
-	static void MyListener::respond(const http_request& request, const status_code& status, const json::value& response);
 
-private:
-	static void handle_get(http_request request);
+void respond(const http_request& request, const status_code& status, const json::value& response);
+json::value processRequest(json::value json_input);
+void handle_post(http_request request);
 	//void handle_put(http_request request);
 	//void handle_post(http_request request);
-
-
-	http_listener m_listener;
-};

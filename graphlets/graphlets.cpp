@@ -2,19 +2,12 @@
 //
 // graphlets.cpp : Defines the entry point for the console application.
 //
-#include <vector>
-#include <iostream>
-#include <fstream>
-#include <algorithm>
-//#include <string>
-#include <ctime>
+
+//#include <algorithm>
+
 #include "methods.h"
 
 
-
-
-using namespace std;
-//using web::json;
 
 int main()
 {
@@ -22,22 +15,30 @@ int main()
 	clock_t endTime;
 	startTime = clock();
 
-	vector<vector<int>> dictionary = read_dictionary_from_file("dictionary.bin");
-	network net = read_network_from_file("exmpl100.in");
-	vector<vector<int>> network_adjacency = sparse_network(net);
+	
 
-	vector<vector<int>> gdd(net.Number_of_Vertices, vector<int>(73, 0));
-	enumerateSubgraphs(net, network_adjacency, 5, gdd, dictionary);
-	enumerateSubgraphs(net, network_adjacency, 4, gdd, dictionary);
-	enumerateSubgraphs(net, network_adjacency, 3, gdd, dictionary);
-	enumerateSubgraphs(net, network_adjacency, 2, gdd, dictionary);
+	try
+	{
+		http_listener _listener(L"http://localhost:8010");
+		_listener.support(methods::POST, handle_post);
+		_listener.open()
+			.wait();
+		while (true)
+		{
+			this_thread::sleep_for(chrono::milliseconds(2000));
+		}
+	}
+
+	catch (exception const & e)
+	{
+		wcout << e.what() << endl;
+	}
+
+
 	endTime = clock();
 	double t = (endTime - startTime) / CLOCKS_PER_SEC;
-	bool check = check_answers(gdd);
-	cout << check << endl << t << endl;
+	cout << endl << t << endl;
 
-	free(net.gVector);
-	free(net.dInfo);
 
 	return 0;
 }
@@ -278,49 +279,6 @@ nauty_output getCanons(unsigned int n, vector<unsigned int> graphletAdj){
 	return graphletCanon;
 }
 
-//gets the file name and reads the *txt file and outputs the readout as a network structure
-network read_network_from_file(string file_name){
-
-	network net;
-
-	//read network from file
-	ifstream readNetwork(file_name, ios::in);
-
-	int v1, v2;	//v1 and v2 store the vertices for each edge entry
-	net.Number_of_Edges = 0;			//NumberEdges counts the number of edges as input file streams
-	vector<vector<int>> preVector;
-	while (readNetwork >> v1)
-	{
-		readNetwork >> v2;
-		net.Number_of_Edges++;
-		if (preVector.size() <= max(v1, v2))
-		{
-			preVector.resize(max(v1, v2) + 1);
-		}
-		preVector[v1].push_back(v2);	//add corresponding info for an edge to the to vertices
-		preVector[v2].push_back(v1);
-	}
-	readNetwork.close();
-	//
-
-	net.Number_of_Vertices = preVector.size();
-	//net.graphVector.resize(net.Number_of_Edges * 2);		//graphVector is the finall vector used to represent the network
-	//net.delimiterInfo.resize(preVector.size() + 1);			//the array used to store the information on where in graphVector each array starts
-	net.dInfo[0] = 0;
-	int current = 0;								//to indicate where in the graphVector we are
-	for (int i = 0; i < preVector.size(); i++)
-	{
-		net.dInfo[i + 1] = net.dInfo[i] + preVector[i].size();
-		for (int j = 0; j < preVector[i].size(); j++)
-		{
-			net.gVector[current] = preVector[i][j];
-			current++;
-		}
-	}
-
-
-	return net;
-}
 
 //reads the dictionary of orbits from a binary file
 vector<vector<int>> read_dictionary_from_file(string dict_name){
@@ -442,127 +400,74 @@ count++;
 
 extendSubgraph(subVer, extVer2, v, n, net_adjacency, k, GDD, orbit_dict);  */
 
-vector<vector<int>> connect_server(network net)
+
+json::value  convert_gdd_to_json(vector<vector<int>> gdd_vector)
 {
-	vector<vector<int>> gdd;
-	pplx::task<void> a= Get_GDD(net, gdd);
+	vector<json::value> arrayGDD(gdd_vector.size() * 73);
 
-	return gdd;
-}
-
-
-//creates GDD object from jason values 
-vector<vector<int>> GDD_generator(web::json::value jsonValue, network net)
-{
-	vector<vector<int>> igdd(73);
-	for (int i=0; i<jsonValue.size(); ++i)
-		{	
-			igdd[i/73][i%73] = jsonValue.at(i).as_integer();
-			i++;
-		}
-
-	return igdd;
-}
-
-//creates jason object from the network
-web::json::value network_to_jason(network net){
-	//web::json::value json_network = web::json::value::array();
-
-	std::vector<web::json::value> arrayNet(net.Number_of_Vertices + net.Number_of_Edges * 2 + 3);
-
-
-	utility::stringstream_t ss1;
-	ss1 << net.Number_of_Edges;
-	web::json::value numberEdge = web::json::value::parse(ss1);	
-	arrayNet.push_back(numberEdge);
-
-	utility::stringstream_t ss2;
-	ss1 << net.Number_of_Vertices;
-	web::json::value numberVer = web::json::value::parse(ss2);
-	arrayNet.push_back(numberVer);
-
-	for (int i = 0; i < (net.Number_of_Edges * 2); i++)
+	for (int i = 0; i < (gdd_vector.size() * 73); i++)
 	{
 		utility::stringstream_t ssi;
-		ssi << net.gVector[i];
-		web::json::value inserted = web::json::value::parse(ssi);
-		arrayNet.push_back(inserted);
+		ssi << gdd_vector[i / 73][i % 73];
+		arrayGDD[i] = web::json::value::parse(ssi);
 	}
 
-	for (int i = 0; i <= (net.Number_of_Vertices); i++)
-	{
-		utility::stringstream_t ssi;
-		ssi << net.dInfo[i];
-		web::json::value inserted = web::json::value::parse(ssi);
-		arrayNet.push_back(inserted);
-	}
-
-	web::json::value njson = web::json::value::array(arrayNet);
-	return njson;
-
-}
+	web::json::value gdd_json = web::json::value::array(arrayGDD);
 
 
-pplx::task<void> Get_GDD(network net, vector<vector<int>>& gdds)
-{
-
-	return pplx::create_task([]
-	{
-		web::http::client::http_client client(L"http://blabla/value/");
-		return client.request(web::http::methods::GET); //returns An asynchronous operation type task<http_response> that is completed once a response from the request is received.  
-	})
-		
-	.then([=] (web::http::http_response response)
-	{
-		if (response.status_code() == web::http::status_codes::OK)
-		{
-			return response.extract_json();		//returns>JSON value from the body of this message.  pplx::task<json::value>
-		}
-
-		return pplx::create_task([]{return web::json::value(); });
-		//return web::json::value();
-	})
-	
-	.then([&](web::json::value jsonValue)
-	{
-		if (jsonValue.is_null())
-			return;
-		gdds = GDD_generator(jsonValue, net);
-		//writeGdds(gdds);
-		
-	});
-
+	return gdd_json;
 }
 
 
 
 
-
-	MyListener::MyListener(const http::uri& url) : m_listener(http_listener(url))
-
+void handle_post(http_request message)
 	{
-		m_listener.open().wait();
-		m_listener.support(methods::GET,
-			std::tr1::bind(&MyListener::handle_get,
-			this,
-			std::tr1::placeholders::_1));
-//		m_listener.support(methods::PUT,
-//			std::tr1::bind(&MyListener::handle_put,
-//			this,
-//			std::tr1::placeholders::_1));
-//		m_listener.support(methods::POST,
-//			std::tr1::bind(&MyListener::handle_post,
-//			this,
-//			std::tr1::placeholders::_1));
+		json::value input = message.extract_json().get();
+		json::value gdd = processRequest(input);
+		respond(message, status_codes::OK, gdd);
 	};
 
-	void MyListener::respond(const http_request& request, const status_code& status, const json::value& response) {
+	//gets the json value sent by client and processes the gdd request. retuen value is the gdd response packed as json value
+json::value  processRequest(json::value json_input)
+	{
+		network n;
+		int graphlet_size = json_input.at(0).as_integer();
+		int start_node = json_input.at(1).as_integer();
+		int end_node = json_input.at(2).as_integer();
+		n.Number_of_Edges = json_input.at(3).as_integer();
+		n.Number_of_Vertices = json_input.at(4).as_integer();
+
+		for (int i = 0; i < n.Number_of_Edges * 2; i++)
+			n.gVector[i] = json_input.at(i + 5).as_integer();
+
+		for (int i = 0; i < n.Number_of_Vertices + 1; i++)
+			n.dInfo[i] = json_input.at(i + 5 + n.Number_of_Edges * 2).as_integer();
+
+		vector<vector<int>> network_adjacency = sparse_network(n);
+		vector<vector<int>> dictionary = read_dictionary_from_file("dictionary.bin");
+
+		vector<int> initial_vertices(end_node - start_node + 1);
+		for (int i = 0; i < initial_vertices.size(); i++)
+			initial_vertices[i] = start_node + i;
+
+		vector<vector<int>> gdd_temp = call_extendSubgraph(initial_vertices, n, network_adjacency, graphlet_size, dictionary);
+		free(n.gVector);
+		free(n.dInfo);
+		json::value gdds=convert_gdd_to_json(gdd_temp) ;
+
+		return gdds;
+	}
+
+	void respond(const http_request& request, const status_code& status, const json::value& response) {
 		request.reply(status, response);
-	}
+	}	
 
 
-	void MyListener::handle_get(http_request message)
-	{
-		message.reply(status_codes::OK, U("Hello, World!"));
-	};
+	//vector<vector<int>> connect_server(network net)
+	//{
+	//	vector<vector<int>> gdd;
+	//	pplx::task<void> a = Get_GDD(net, gdd);
 
+	//	return gdd;
+	//}
